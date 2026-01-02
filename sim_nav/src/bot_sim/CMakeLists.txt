@@ -152,34 +152,36 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(scan_2_node src/scan_2_node.cpp)
 add_executable(imu_filter src/imu_filter.cpp)
 add_executable(real_robot_transform src/real_robot_transform.cpp)
-# add_executable(real_robot_transform_3d src/real_robot_transform_3d.cpp include/bot_sim/EKF.h)
-# add_executable(cmd2ser src/cmd2ser.cpp)
-# add_executable(ser2msg src/ser2msg.cpp)
-add_executable(ser2msg_decision src/ser2msg_decision.cpp)
 add_executable(ser2msg_decision_givepoint src/ser2msg_decision_givepoint.cpp)
-# add_executable(wavefront src/wavefront.cpp)
-# add_executable(test_transform src/test_transform.cpp)
-# add_executable(lidar_filter src/lidar_filter.cpp)
-add_executable(threeD_lidar_filter src/threeD_lidar_filter.cpp)
-add_executable(threeD_lidar_filter_pointcloud src/threeD_lidar_filter_pointcloud.cpp)
-add_executable(threeD_lidar_merge src/threeD_lidar_merge.cpp)
-add_executable(threeD_lidar_merge_pointcloud src/threeD_lidar_merge_pointcloud.cpp)
-add_executable(threeD_lidar_merge_pointcloud_test src/threeD_lidar_merge_pointcloud_test.cpp)
+add_executable(dstarlite src/dstarlite.cpp)
+
+# [Archived]
+# add_executable(threeD_lidar_filter src/threeD_lidar_filter.cpp)
+# add_executable(threeD_lidar_filter_pointcloud src/threeD_lidar_filter_pointcloud.cpp)
+# add_executable(threeD_lidar_merge src/threeD_lidar_merge.cpp)
+# add_executable(threeD_lidar_merge_pointcloud src/threeD_lidar_merge_pointcloud.cpp)
+# add_executable(threeD_lidar_merge_pointcloud_test src/threeD_lidar_merge_pointcloud_test.cpp)
+# add_executable(ser2msg_decision src/ser2msg_decision.cpp)
 # add_executable(dbscan_bfs src/dbscan_bfs.cpp)
-add_executable(dbscan_bfs_3D src/dbscan_bfs_3D.cpp)
+
+# [Archived]
+# add_executable(dbscan_bfs_3D src/dbscan_bfs_3D.cpp)
+
 # add_executable(threeD_lidar_test src/threeD_lidar_test.cpp)
 # add_executable(ser2msg_write_only src/ser2msg_write_only.cpp)
 # add_executable(transform_listener src/transform_listener.cpp)
-add_executable(dstarlite src/dstarlite.cpp)
-add_executable(dwa src/dwa.cpp)
+
+# [Archived]
+# add_executable(dwa src/dwa.cpp)
+
 # add_executable(dstarlite src/dstarlite_test_while.cpp)
 # add_executable(dstarlite_pointcloud src/dstarlite_pointcloud.cpp)
 # add_executable(pc_vel_scaler src/pc_vel_scaler.cpp)
 
-add_executable(calculate_shift_theta src/calculate_shift_theta.cpp)
+# [Archived]
+# add_executable(calculate_shift_theta src/calculate_shift_theta.cpp)
 
 # Strategy (Behavior Tree)
 add_executable(strategy_node src/strategy_node.cpp)
@@ -212,12 +214,16 @@ target_link_libraries(real_robot_transform
 # target_link_libraries(ser2msg
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(ser2msg_decision
-  ${catkin_LIBRARIES}
-)
+
+# [Archived]
+# target_link_libraries(ser2msg_decision
+#   ${catkin_LIBRARIES}
+# )
+
 target_link_libraries(ser2msg_decision_givepoint
   ${catkin_LIBRARIES}
 )
+
 # target_link_libraries(wavefront
 #   ${catkin_LIBRARIES}
 # )
@@ -227,27 +233,33 @@ target_link_libraries(ser2msg_decision_givepoint
 # target_link_libraries(lidar_filter
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(threeD_lidar_filter
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(threeD_lidar_filter_pointcloud
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(threeD_lidar_merge
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(threeD_lidar_merge_pointcloud
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(threeD_lidar_merge_pointcloud_test
-  ${catkin_LIBRARIES}
-)
+
+# [Archived]
+# target_link_libraries(threeD_lidar_filter
+#   ${catkin_LIBRARIES}
+# )
+# target_link_libraries(threeD_lidar_filter_pointcloud
+#   ${catkin_LIBRARIES}
+# )
+# target_link_libraries(threeD_lidar_merge
+#   ${catkin_LIBRARIES}
+# )
+# target_link_libraries(threeD_lidar_merge_pointcloud
+#   ${catkin_LIBRARIES}
+# )
+# target_link_libraries(threeD_lidar_merge_pointcloud_test
+#   ${catkin_LIBRARIES}
+# )
+
 # target_link_libraries(dbscan_bfs
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(dbscan_bfs_3D
-  ${catkin_LIBRARIES}
-)
+
+# [Archived]
+# target_link_libraries(dbscan_bfs_3D
+#   ${catkin_LIBRARIES}
+# )
+
 # target_link_libraries(threeD_lidar_test
 #   ${catkin_LIBRARIES}
 # )
@@ -266,25 +278,28 @@ target_link_libraries(dstarlite
 # target_link_libraries(pc_vel_scaler
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(calculate_shift_theta
-  ${catkin_LIBRARIES}
-)
+
+# [Archived]
+# target_link_libraries(calculate_shift_theta
+#   ${catkin_LIBRARIES}
+# )
 
 target_link_libraries(strategy_node
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(dwa
-  ${catkin_LIBRARIES}
-)
+# [Archived]
+# target_link_libraries(dwa
+#   ${catkin_LIBRARIES}
+# )
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(real_robot_transform ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(real_robot_transform ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 # add_dependencies(threeD_lidar_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 # add_dependencies(ser2msg_write_only ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(dstarlite ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(dwa ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(dwa ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(strategy_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 # add_dependencies(dstarlite_pointcloud ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 #############
