@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(bot_sim)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -12,6 +12,7 @@ add_compile_options(-std=c++14)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  roslib
   std_msgs
   geometry_msgs
   visualization_msgs
@@ -23,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   teb_local_planner
   costmap_converter
   angles
+  behaviortree_cpp_v3
 )
 
 ## System dependencies are found with CMake's conventions
@@ -179,6 +181,9 @@ add_executable(dwa src/dwa.cpp)
 
 add_executable(calculate_shift_theta src/calculate_shift_theta.cpp)
 
+# Strategy (Behavior Tree)
+add_executable(strategy_node src/strategy_node.cpp)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -265,6 +270,10 @@ target_link_libraries(calculate_shift_theta
   ${catkin_LIBRARIES}
 )
 
+target_link_libraries(strategy_node
+  ${catkin_LIBRARIES}
+)
+
 target_link_libraries(dwa
   ${catkin_LIBRARIES}
 )
@@ -276,6 +285,7 @@ add_dependencies(real_robot_transform ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 # add_dependencies(ser2msg_write_only ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(dstarlite ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(dwa ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(strategy_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 # add_dependencies(dstarlite_pointcloud ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 #############
 ## Install ##

@@ -49,10 +49,12 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <depend>roscpp</depend>
+  <depend>roslib</depend>
   <depend>serial</depend>
   <depend>actionlib</depend>
   <depend>actionlib_msgs</depend>
   <depend>costmap_converter</depend>
+  <depend>behaviortree_cpp_v3</depend>
   <build_depend>angles</build_depend>
 
   <buildtool_depend>catkin</buildtool_depend>

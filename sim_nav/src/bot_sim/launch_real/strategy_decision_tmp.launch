@@ -1,0 +1,46 @@
+<launch>
+  <!-- Temporary decision-only launch: runs strategy_node and publishes goals to /clicked_point.
+       This launch does NOT start navigation/localization/referee bridges; it only outputs decision goals.
+  -->
+
+  <param name="use_sim_time" value="false"/>
+
+  <!-- Tuning args -->
+  <arg name="tick_hz" default="20"/>
+  <arg name="danger_hp" default="100"/>
+  <arg name="sufficient_bullet" default="10"/>
+  <arg name="publish_on_change_only" default="true"/>
+
+  <!-- BehaviorTree XML -->
+  <arg name="bt_xml" default="$(find bot_sim)/config/strategy_tree.xml"/>
+
+  <!-- Goal output topic (dstarlite.launch expects /clicked_point) -->
+  <arg name="goal_topic" default="/clicked_point"/>
+
+  <!-- Global goal parameters consumed by SetGoalFromParams (nh, not pnh): goals/<ns>/{x,y} -->
+  <arg name="push_x" default="0.0"/>
+  <arg name="push_y" default="0.0"/>
+  <arg name="occupy_x" default="0.0"/>
+  <arg name="occupy_y" default="0.0"/>
+  <arg name="supply_x" default="0.0"/>
+  <arg name="supply_y" default="0.0"/>
+
+  <param name="/goals/push/x" value="$(arg push_x)"/>
+  <param name="/goals/push/y" value="$(arg push_y)"/>
+  <param name="/goals/occupy/x" value="$(arg occupy_x)"/>
+  <param name="/goals/occupy/y" value="$(arg occupy_y)"/>
+  <param name="/goals/supply/x" value="$(arg supply_x)"/>
+  <param name="/goals/supply/y" value="$(arg supply_y)"/>
+
+  <node pkg="bot_sim" type="strategy_node" name="strategy_node" output="screen" respawn="true">
+    <!-- private params (pnh: ~) -->
+    <param name="tick_hz" value="$(arg tick_hz)"/>
+    <param name="danger_hp" value="$(arg danger_hp)"/>
+    <param name="sufficient_bullet" value="$(arg sufficient_bullet)"/>
+    <param name="publish_on_change_only" value="$(arg publish_on_change_only)"/>
+    <param name="bt_xml" value="$(arg bt_xml)"/>
+
+    <!-- Remap node-relative clicked_point -> desired global goal topic -->
+    <remap from="clicked_point" to="$(arg goal_topic)"/>
+  </node>
+</launch>

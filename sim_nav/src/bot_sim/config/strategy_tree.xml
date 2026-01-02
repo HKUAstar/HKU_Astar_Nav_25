@@ -1,0 +1,105 @@
+<root BTCPP_format="4">
+  <BehaviorTree ID="Main">
+    <ReactiveSequence name="MainLoop">
+      <Sequence name="UpdateBlackboard">
+        <UpdateRefereeBB />
+        <UpdateNavigationBB />
+        <UpdateVisionBB />
+        <UpdateTimersBB />
+        <UpdateDerivedFlags danger_hp="{danger_hp}" sufficient_bullet="{sufficient_bullet}" />
+      </Sequence>
+
+      <ReactiveFallback name="DecideAction">
+        <Sequence name="ToInitWhenNotInGame">
+          <GameNotStartEnd />
+          <SetAction action="INIT" />
+        </Sequence>
+
+        <Sequence name="ToRespawnWhenDead">
+          <IsSentryDead />
+          <SetAction action="RESPAWN" />
+        </Sequence>
+
+        <Sequence name="ToSupplyWhenInDanger">
+          <IsSentryInDanger />
+          <SetAction action="SUPPLY" />
+        </Sequence>
+
+        <Sequence name="ToOccupyWhenNeeded">
+          <Fallback>
+            <NotBulletSufficient />
+            <AggressiveAdvantage threshold="50" />
+            <CentralOccupiable />
+          </Fallback>
+          <SetAction action="OCCUPY" />
+        </Sequence>
+
+        <SetAction action="PUSH" />
+      </ReactiveFallback>
+
+      <ReactiveFallback name="ExecuteAction">
+        <Sequence>
+          <IsAction value="INIT" />
+          <SetMotion motion="STAY_IN_PLACE" />
+          <ClearGoal />
+        </Sequence>
+
+        <Sequence>
+          <IsAction value="PUSH" />
+          <Fallback>
+            <Sequence>
+              <IsArrived />
+              <SetMotion motion="STAY_IN_PLACE" />
+              <ClearGoal />
+            </Sequence>
+            <Sequence>
+              <SetMotion motion="PUSH" />
+              <SetGoalFromParams ns="push" />
+              <PublishGoalPoint topic="clicked_point" />
+            </Sequence>
+          </Fallback>
+        </Sequence>
+
+        <Sequence>
+          <IsAction value="OCCUPY" />
+          <Fallback>
+            <Sequence>
+              <IsArrived />
+              <SetMotion motion="STAY_IN_PLACE" />
+              <ClearGoal />
+            </Sequence>
+            <Sequence>
+              <SetMotion motion="OCCUPY" />
+              <SetGoalFromParams ns="occupy" />
+              <PublishGoalPoint topic="clicked_point" />
+            </Sequence>
+          </Fallback>
+        </Sequence>
+
+        <Sequence>
+          <IsAction value="SUPPLY" />
+          <Fallback>
+            <Sequence>
+              <IsArrived />
+              <SetMotion motion="STAY_IN_PLACE" />
+              <ClearGoal />
+            </Sequence>
+            <Sequence>
+              <SetMotion motion="SUPPLY" />
+              <SetGoalFromParams ns="supply" />
+              <PublishGoalPoint topic="clicked_point" />
+            </Sequence>
+          </Fallback>
+        </Sequence>
+
+        <Sequence>
+          <IsAction value="RESPAWN" />
+          <SetMotion motion="RESPAWN" />
+          <ClearGoal />
+        </Sequence>
+
+        <Failure/>
+      </ReactiveFallback>
+    </ReactiveSequence>
+  </BehaviorTree>
+</root>
