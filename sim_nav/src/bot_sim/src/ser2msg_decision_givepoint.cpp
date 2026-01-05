@@ -169,19 +169,12 @@ private:
     int enemy_score_;             // 敌方得分（哨兵视角）
     uint16_t check_occupation_cnt_; // 占领检查计数器
     
-    // 其他裁判数据
-    uint16_t max_power_;
-    uint16_t heat_limit_;
-    uint16_t heat_;
-    uint16_t bullet_speed_;
-    uint8_t shooter_speed_limit_;
-    
+
     // 双方机器人血量（用于判断死亡）
     uint16_t red_1_hp_, red_2_hp_, red_3_hp_, red_4_hp_, red_5_hp_, red_7_hp_;
     uint16_t blue_1_hp_, blue_2_hp_, blue_3_hp_, blue_4_hp_, blue_5_hp_, blue_7_hp_;
     uint16_t red_base_hp_, blue_base_hp_;
-    uint16_t gold_coin_remain_;
-    
+
     // 缓冲区
     std::vector<uint8_t> buffer_;
     
@@ -692,20 +685,6 @@ public:
         }
     }
     
-    // // 手动设置得分（用于测试或初始化）
-    // void setScores(int friendly, int enemy) {
-    //     friendly_score_ = friendly;
-    //     enemy_score_ = enemy;
-    //     publishScores();
-    //     ROS_INFO("Manual score set: Friendly=%d, Enemy=%d", friendly, enemy);
-    // }
-    
-    // // 获取当前得分（用于调试）
-    // void getScores(int& friendly, int& enemy) const {
-    //     friendly = friendly_score_;
-    //     enemy = enemy_score_;
-    // }
-    
     // 获取哨兵是否是红方
     bool isRedTeam() const {
         return robot_color_ == 1;
@@ -716,17 +695,6 @@ public:
         return robot_color_ == 2;
     }
     
-    // 获取当前血量百分比（用于决策）
-    float getHpPercentage() const {
-        if (max_hp_ == 0) return 0.0f;
-        return static_cast<float>(robot_hp_) / max_hp_;
-    }
-    
-    // 获取弹药百分比（用于决策）
-    float getAmmoPercentage() const {
-        // 假设最大弹药量1000发
-        return std::min(static_cast<float>(bullet_remain_) / 1000.0f, 1.0f);
-    }
 };
 
 class Message {
