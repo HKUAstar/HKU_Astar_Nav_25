@@ -70,8 +70,19 @@ public:
     uint16_t occupy_status = 0;          
     
     // 分数计算相关
-    int friendly_score = 0;              
-    int enemy_score = 0;                 
+    int friendly_score = 200;              
+    int enemy_score = 200; 
+    // 科技核心装配相关
+    uint8_t tech_core_status = 0;           // 科技核心状态 0:未装配 1:装配A 2:装配B 3:装配C
+    uint8_t tech_difficulty_level = 0;       // 当前/已装配的难度等级
+    uint8_t rfid_assembly_ally = 0;          // 己方装配增益点RFID检测状态
+    uint8_t rfid_assembly_enemy = 0;         // 对方装配增益点RFID检测状态
+    uint8_t rfid_tech_core_detected = 0;     // 科技核心RFID检测状态
+    uint32_t rfid_status = 0;                // 完整的RFID状态位（来自0x0209）
+    
+    // 其他辅助字段
+    uint8_t previous_tech_core_status = 0;   // 上次的科技核心状态（用于检测变化）
+    uint32_t tech_core_check_cnt = 0;        // 检查计数器                
     
     //击杀
     uint8_t previous_red_dead = 0;
@@ -169,10 +180,10 @@ public:
             this->check_occupation_cnt = 0;
             
             if (this->occupy_status == 2) {  // 被对方占领
-                this->enemy_score++;
+                this->friendly_score = std::max(0, this->friendly_score - 1);
             }
             else if (this->occupy_status == 1) {  // 被己方占领
-                this->friendly_score++;
+                this->enemy_score = std::max(0, this->enemy_score - 1);
             }
         }
         
@@ -184,10 +195,10 @@ public:
             if (previous_blue_dead_bit == 0 && current_blue_dead_bit == 1) {
                 // 蓝方机器人新死亡
                 if (this->robot_color == 2) {  // 己方是蓝色
-                    this->enemy_score += 20;
+                    this->friendly_score = std::max(0, this->friendly_score - 20);
                 }
                 else {  // 己方是红色
-                    this->friendly_score += 20;
+                    this->enemy_score = std::max(0, this->enemy_score - 20);
                 }
             }
             
