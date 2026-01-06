@@ -71,18 +71,7 @@ public:
     
     // 分数计算相关
     int friendly_score = 200;              
-    int enemy_score = 200; 
-    // 科技核心装配相关
-    uint8_t tech_core_status = 0;           // 科技核心状态 0:未装配 1:装配A 2:装配B 3:装配C
-    uint8_t tech_difficulty_level = 0;       // 当前/已装配的难度等级
-    uint8_t rfid_assembly_ally = 0;          // 己方装配增益点RFID检测状态
-    uint8_t rfid_assembly_enemy = 0;         // 对方装配增益点RFID检测状态
-    uint8_t rfid_tech_core_detected = 0;     // 科技核心RFID检测状态
-    uint32_t rfid_status = 0;                // 完整的RFID状态位（来自0x0209）
-    
-    // 其他辅助字段
-    uint8_t previous_tech_core_status = 0;   // 上次的科技核心状态（用于检测变化）
-    uint32_t tech_core_check_cnt = 0;        // 检查计数器                
+    int enemy_score = 200;     
     
     //击杀
     uint8_t previous_red_dead = 0;
