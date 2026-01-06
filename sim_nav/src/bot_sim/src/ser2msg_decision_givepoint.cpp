@@ -13,6 +13,7 @@
 //新增头文件
 #include <std_msgs/Int32.h>      
 #include <std_msgs/UInt8.h>  
+#include <std_msgs/Float32.h>
 #include <vector>
 
 const double PI = 3.14159265358979323846;
@@ -211,6 +212,12 @@ public:
                        << ", HP: " << this->remain_hp 
                        << ", Bullet: " << this->bullet_remain
                        << ", Score: " << this->friendly_score << "-" << this->enemy_score);
+    }
+
+    bool isCentralOccupiable() const {
+        // occupy_status: bit23-24 of event_data (0: none, 1/2: occupied, 3: other/contested)
+        // Simplest interpretation: "occupiable" when currently unoccupied during the match.
+        return (this->game_progress == 4) && (this->occupy_status == 0);
     }
 };
 
