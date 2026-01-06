@@ -10,6 +10,9 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include<geometry_msgs/PointStamped.h>
 #include <std_msgs/Bool.h>
+//新增头文件
+#include <std_msgs/Int32.h>      
+#include <std_msgs/UInt8.h>  
 #include <vector>
 
 const double PI = 3.14159265358979323846;
@@ -18,6 +21,11 @@ serial::Serial ser;
 
 const int write_length = 15;
 const int read_length = 19;
+
+// 根据referee_task中的函数得到
+const int referee_data_length = 62;
+const int total_read_length = read_length + referee_data_length;
+
 
 geometry_msgs::TransformStamped transformRotbaseToVirtual;
 geometry_msgs::TransformStamped transformGimbalToRotbase;
@@ -50,9 +58,28 @@ public:
     int goal_type = 13;
     bool receive_message = 0;
     std::vector<uint8_t> buffer;
+     //新增转发裁判系统数据
+    uint8_t game_progress = 0;            
+    uint16_t remain_hp = 400;           
+    uint16_t bullet_remain = 999;        
+    
+    
+    uint8_t robot_color = 0;             // 己方颜色 1:红方 2:蓝方
+    uint8_t red_dead = 0;                
+    uint8_t blue_dead = 0;               
+    uint16_t occupy_status = 0;          
+    
+    // 分数计算相关
+    int friendly_score = 0;              
+    int enemy_score = 0;                 
+    
+    //击杀
+    uint8_t previous_red_dead = 0;
+    uint8_t previous_blue_dead = 0;
+    uint16_t check_occupation_cnt = 0;   // 中央占领检测计数器
 
     bool readFromBuffer() {
-        if (this->buffer.size() < read_length) {
+        if (this->buffer.size() < total_read_length) {
             // ROS_INFO("Not enough data available from the serial port, current buffer size: %d", buffer.size());
             return false; // Not enough data, 
         }
@@ -66,7 +93,35 @@ public:
             this->goal_type = (unsigned int)temp;
             memcpy(&this->goal_x, &this->buffer[10], sizeof(float));
             memcpy(&this->goal_y, &this->buffer[14], sizeof(float));
-            this->buffer.erase(this->buffer.begin(), this->buffer.begin()+read_length);
+            
+              
+            // 获取裁判数据
+            if (this->buffer.size() >= total_read_length) {
+                uint8_t* referee_data = &this->buffer[19];
+                
+                this->robot_color = referee_data[1];           
+                this->game_progress = referee_data[2];         
+                this->remain_hp = (referee_data[6] << 8) | referee_data[5];  
+                
+                // 子弹数量（data_unpack）
+                this->bullet_remain = (referee_data[53] << 8) | referee_data[52];
+                
+                // 占领状态
+                uint32_t event_data = (referee_data[51] << 24) | (referee_data[50] << 16) | 
+                                      (referee_data[49] << 8) | referee_data[48];
+                this->occupy_status = (event_data >> 23) & 0x03;  // bit23-24: 中心增益点占领状态
+                
+                // 保存上一次的死亡状态用于检测击杀
+                this->previous_red_dead = this->red_dead;
+                this->previous_blue_dead = this->blue_dead;
+                
+                updateDeathStatus(referee_data);
+                
+                //更新分数
+                updateScore();
+            }
+            
+            this->buffer.erase(this->buffer.begin(), this->buffer.begin()+total_read_length);
             this->receive_message = 1;
             //ROS_INFO("Read from buffer");
             return true;
@@ -76,11 +131,95 @@ public:
             return true; // Format dismatch, drop the first byte and try again 
         }
     }
+        // 更新死亡状态（根据血量判断）
+    void updateDeathStatus(uint8_t* data) {
+        // 假设血量数据在第16-39字节（根据data_unpack）
+        // red_1_hp: 16-17, red_2_hp: 18-19, red_3_hp: 20-21, red_4_hp: 22-23
+        // blue_1_hp: 24-25, blue_2_hp: 26-27, blue_3_hp: 28-29, blue_4_hp: 30-31
+        
+        this->red_dead = 0;
+        this->blue_dead = 0;
+        
+        // 红方机器人死亡状态
+        for (int i = 0; i < 4; i++) {
+            uint16_t hp = (data[17 + i*2] << 8) | data[16 + i*2];
+            if (hp == 0) {
+                this->red_dead |= (1 << i);
+            }
+        }
+        
+        // 蓝方机器人死亡状态
+        for (int i = 0; i < 4; i++) {
+            uint16_t hp = (data[25 + i*2] << 8) | data[24 + i*2];
+            if (hp == 0) {
+                this->blue_dead |= (1 << i);
+            }
+        }
+    }
+
+    // 更新分数
+    void updateScore() {
+        if (this->game_progress != 4) {  // 不在比赛中
+            return;      
+        }
+        
+        // 1. 占领中央增益点所得分数（每20次检测加1分）
+        this->check_occupation_cnt++;
+        if (this->check_occupation_cnt >= 20) {  // 相当于1秒（假设50ms一次）
+            this->check_occupation_cnt = 0;
+            
+            if (this->occupy_status == 2) {  // 被对方占领
+                this->enemy_score++;
+            }
+            else if (this->occupy_status == 1) {  // 被己方占领
+                this->friendly_score++;
+            }
+        }
+        
+        // 2. 击杀所得分数（检测新死亡）
+        for (int index = 0; index < 4; index++) {  // 4个机器人
+            bool previous_blue_dead_bit = (this->previous_blue_dead >> index) & 0x01;
+            bool current_blue_dead_bit = (this->blue_dead >> index) & 0x01;
+           
+            if (previous_blue_dead_bit == 0 && current_blue_dead_bit == 1) {
+                // 蓝方机器人新死亡
+                if (this->robot_color == 2) {  // 己方是蓝色
+                    this->enemy_score += 20;
+                }
+                else {  // 己方是红色
+                    this->friendly_score += 20;
+                }
+            }
+            
+            bool previous_red_dead_bit = (this->previous_red_dead >> index) & 0x01;
+            bool current_red_dead_bit = (this->red_dead >> index) & 0x01;
+            
+            if (previous_red_dead_bit == 0 && current_red_dead_bit == 1) {
+                // 红方机器人新死亡
+                if (this->robot_color == 2) {  // 己方是蓝色
+                    this->friendly_score += 20;
+                }
+                else {  // 己方是红色
+                    this->enemy_score += 20;
+                }
+            }
+        }
+    }
+    
     void printData() {
-        ROS_INFO_STREAM("imu_angle: " << this->imu_angle);
-        ROS_INFO_STREAM("relative_angle: " << this->relative_angle);
+        ROS_INFO_STREAM("Game Progress: " << (int)this->game_progress 
+                       << ", HP: " << this->remain_hp 
+                       << ", Bullet: " << this->bullet_remain
+                       << ", Score: " << this->friendly_score << "-" << this->enemy_score);
     }
 };
+
+            
+    // void printData() {
+    //     ROS_INFO_STREAM("imu_angle: " << this->imu_angle);
+    //     ROS_INFO_STREAM("relative_angle: " << this->relative_angle);
+    // }
+
 
 geometry_msgs::Twist cmd_vel;
 
@@ -227,6 +366,7 @@ int main(int argc, char** argv)
         ROS_ERROR("Failed to retrieve parameter 'gimbal_frame'");
         return -1;
     }
+    // std::string vel_topic = "cmd_vel";
     std::string vel_topic;
     if (!nh.getParam("/"+node_name+"/vel_topic",vel_topic)){
     	ROS_ERROR("Failed to get param: %s", vel_topic.c_str());
@@ -294,7 +434,19 @@ int main(int argc, char** argv)
     ros::Subscriber sub = nh.subscribe(vel_topic, 1000, cmdVelCallback);
     ros::Subscriber sub_status = nh.subscribe("/dstar_status", 1000, StatusCallback);
     ros::Publisher clicked_point_pub=nh.advertise<geometry_msgs::PointStamped>("clicked_point",1);
-
+    // 新增topic
+    ros::Publisher game_progress_pub = nh.advertise<std_msgs::Int32>("/referee/game_progress", 1);
+    ros::Publisher robot_hp_pub = nh.advertise<std_msgs::Int32>("/referee/remain_hp", 1);
+    ros::Publisher bullet_remain_pub = nh.advertise<std_msgs::Int32>("/referee/bullet_remain", 1);
+    ros::Publisher friendly_score_pub = nh.advertise<std_msgs::Int32>("/referee/friendly_score", 1);
+    ros::Publisher enemy_score_pub = nh.advertise<std_msgs::Int32>("/referee/enemy_score", 1);
+    
+    ros::Publisher central_occupiable_pub = nh.advertise<std_msgs::Bool>("/referee/central_occupiable", 1);
+    ros::Publisher aggressive_pub = nh.advertise<std_msgs::Bool>("/referee/is_aggressive", 1);
+    // 运动状态发布给寻路
+    ros::Publisher imu_angle_pub = nh.advertise<std_msgs::Float32>("/robot/imu_angle", 1);
+    ros::Publisher relative_angle_pub = nh.advertise<std_msgs::Float32>("/robot/relative_angle", 1);
+    
     tf2_ros::TransformBroadcaster tfb;
 
     tf2_ros::Buffer tfBuffer;
@@ -317,7 +469,7 @@ int main(int argc, char** argv)
 
     Message message;
     uint8_t byte;
-    uint8_t buffer_send[read_length];
+    uint8_t buffer_send[write_length];
     buffer_send[0] = 0x4A; // SOF
     ros::Rate rate = ros::Rate(1/delta_time);
 
@@ -347,6 +499,43 @@ int main(int argc, char** argv)
             //ROS_INFO("%d", message.buffer.size());
         }
         while (message.readFromBuffer() && ros::ok());
+        // 发布裁判数据到ROS话题
+        if (message.receive_message) {
+            std_msgs::Int32 game_progress_msg;
+            game_progress_msg.data = message.game_progress;
+            game_progress_pub.publish(game_progress_msg);
+            
+            std_msgs::Int32 hp_msg;
+            hp_msg.data = message.remain_hp;
+            robot_hp_pub.publish(hp_msg);
+            
+            std_msgs::Int32 bullet_msg;
+            bullet_msg.data = message.bullet_remain;
+            bullet_remain_pub.publish(bullet_msg);
+            
+            std_msgs::Int32 friendly_score_msg;
+            friendly_score_msg.data = message.friendly_score;
+            friendly_score_pub.publish(friendly_score_msg);
+            
+            std_msgs::Int32 enemy_score_msg;
+            enemy_score_msg.data = message.enemy_score;
+            enemy_score_pub.publish(enemy_score_msg);
+         
+            std_msgs::Bool central_occupiable_msg;
+            central_occupiable_msg.data = message.isCentralOccupiable();
+            central_occupiable_pub.publish(central_occupiable_msg);
+        
+            
+            // 运动状态转发给寻路模块
+            std_msgs::Float32 imu_angle_msg;
+            imu_angle_msg.data = message.imu_angle;
+            imu_angle_pub.publish(imu_angle_msg);
+            
+            std_msgs::Float32 relative_angle_msg;
+            relative_angle_msg.data = message.relative_angle;
+            relative_angle_pub.publish(relative_angle_msg);
+            message.receive_message = 0;
+        }
             // message.printData();
         //Calculate virtual frame
         {
@@ -450,31 +639,9 @@ int main(int argc, char** argv)
             linear_y.f = -cmd_vel.linear.y;
             std::copy(std::begin(linear_y.bytes),std::end(linear_y.bytes),&buffer_send[5]);
         }
-        // ROS_INFO("continue 3");
         // Omega angle w
         {
             FloatToByte omega;
-            // int index = 0;
-            // if(current_goal == 2 || last_goal == 2){
-            //     index = 1;
-            // }
-            // auto tf_rot_from_map_to_virtual = loc;
-            // tf_rot_from_map_to_virtual.transform.translation.x = 0;
-            // tf_rot_from_map_to_virtual.transform.translation.y = 0;
-            // tf_rot_from_map_to_virtual.transform.translation.z = 0;
-            // geometry_msgs::PointStamped source_point;
-            // source_point.header.frame_id = "virtual_frame";
-            // source_point.header.stamp = ros::Time(0);
-            // source_point.point.x = cos(angles[index]);
-            // source_point.point.y = sin(angles[index]);
-            // ROS_INFO("x: %lf y: %lf angle: %lf index: %d", source_point.point.x, source_point.point.y, angles[index], index);
-            // source_point.point.z = 0;
-            // geometry_msgs::PointStamped target_point;
-            // tf2::doTransform(source_point, target_point, tf_rot_from_map_to_virtual);
-            // double rx = target_point.point.x;
-            // double ry = target_point.point.y;
-            // double angle = atan2(ry,rx);
-            // omega.f = -angle;
             omega.f = 0;
             std::copy(std::begin(omega.bytes),std::end(omega.bytes),&buffer_send[9]);
         }
@@ -483,24 +650,20 @@ int main(int argc, char** argv)
             ByteToByte received_message;
             received_message.f = message.goal_type == 0xF0;
             std::copy(std::begin(received_message.bytes),std::end(received_message.bytes),&buffer_send[13]);
-            // message.receive_message = 0;
         }
-        // ROS_INFO("continue 4");
         //whether arrived
         {
-            ByteToByte arrived;//0 move, 1 arrive
+            ByteToByte arrived;
             first_arrive_flag |= status;
             arrived.f = first_arrive_flag | (message.goal_type == 13);
             status = 0;
             std::copy(std::begin(arrived.bytes),std::end(arrived.bytes),&buffer_send[14]);
         }
-        // Write to the serial port
+        // 发送给下位机
         size_t bytes_written = ser.write(buffer_send,write_length);
         if (bytes_written < write_length){
             ROS_ERROR("Failed to write all bytes to the serial port");
-        }
-        //ROS_INFO("relative angle: %f imu_angle: %f", message.relative_angle, message.imu_angle);
-        // ROS_INFO("%f %f %f", linear_x.f, linear_y.f, omega.f);
+        } 
         ros::spinOnce(); 
         rate.sleep();
     }
